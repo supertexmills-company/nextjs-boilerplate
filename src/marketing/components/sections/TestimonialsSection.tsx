@@ -82,7 +82,7 @@ export default function TestimonialsSection() {
             <article
               key={log.title}
               ref={(el) => {
-                entryRefs.current[index] = el;
+                entryRefs.current[index] = el as HTMLDivElement;
               }}
               className="log-entry luxury-card p-7 md:p-8"
               style={{ transitionDelay: `${(index % 2) * 80}ms` }}

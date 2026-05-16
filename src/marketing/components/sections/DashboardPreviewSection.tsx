@@ -97,7 +97,7 @@ export default function DashboardPreviewSection() {
                 <article
                   key={log.title}
                   ref={(el) => {
-                    entryRefs.current[index] = el;
+                    entryRefs.current[index] = el as HTMLDivElement;
                   }}
                   className="log-entry rounded-[18px] border border-border bg-[var(--surface)] p-6"
                   style={{ transitionDelay: `${(index % 4) * 70}ms` }}

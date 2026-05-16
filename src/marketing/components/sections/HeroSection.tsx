@@ -96,7 +96,6 @@ export default function HeroSection() {
               alt={slide.alt}
               fill
               priority={idx === 0}
-              loading={idx === 0 ? "eager" : "lazy"}
               className="h-full w-full object-cover object-center"
               sizes="100vw"
             />
