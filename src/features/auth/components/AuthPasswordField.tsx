@@ -3,7 +3,6 @@
 import { useState, type ComponentProps } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -17,20 +16,26 @@ export function AuthPasswordField({ id, className, ...props }: AuthPasswordField
       <Input
         id={id}
         type={visible ? "text" : "password"}
-        className={cn("h-11 bg-background/80 pr-11", className)}
+        className={cn("pr-11", className)}
         {...props}
       />
-      <Button
+      <button
         type="button"
-        variant="ghost"
-        size="icon-sm"
-        className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:bg-muted/50 hover:text-amber"
         onClick={() => setVisible((v) => !v)}
         aria-label={visible ? "Hide password" : "Show password"}
         aria-pressed={visible}
+        className={cn(
+          "absolute right-2 top-1/2 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-md",
+          "text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--brass)_40%,transparent)]",
+        )}
       >
-        {visible ? <EyeOff className="size-[1.125rem] stroke-[1.75]" aria-hidden /> : <Eye className="size-[1.125rem] stroke-[1.75]" aria-hidden />}
-      </Button>
+        {visible ? (
+          <EyeOff className="size-[1.125rem] stroke-[1.6]" aria-hidden />
+        ) : (
+          <Eye className="size-[1.125rem] stroke-[1.6]" aria-hidden />
+        )}
+      </button>
     </div>
   );
 }

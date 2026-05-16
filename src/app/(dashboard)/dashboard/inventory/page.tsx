@@ -2,12 +2,24 @@
 
 import Link from "next/link";
 import { Package, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import type { LinenItem } from "@/entities/inventory/types";
 import { DataTable } from "@/features/dashboard/components/DataTable";
 import { EmptyState } from "@/features/dashboard/components/EmptyState";
@@ -24,10 +36,22 @@ import {
 import { useListLocationsQuery } from "@/features/locations/api/locationsApi";
 import { useAppSelector } from "@/store/hooks";
 import { LINEN_STATUS_VALUES } from "@/shared/constants/domain";
-import { fieldClassName } from "@/shared/styles/form";
 import { isFetchBaseQueryError } from "@/lib/rtk-errors";
+
+const ANY = "__any__";
+
 function itemId(row: LinenItem) {
   return String(row._id ?? row.id ?? "");
+}
+
+function errorMessage(err: unknown, fallback: string) {
+  if (isFetchBaseQueryError(err)) {
+    if (err.data && typeof err.data === "object" && "message" in err.data) {
+      return String((err.data as { message?: unknown }).message ?? fallback);
+    }
+    return `${fallback} (${String(err.status)})`;
+  }
+  return fallback;
 }
 
 export default function InventoryPage() {
@@ -36,9 +60,9 @@ export default function InventoryPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [searchDraft, setSearchDraft] = useState("");
-  const [status, setStatus] = useState("");
-  const [missingFilter, setMissingFilter] = useState<"" | "true" | "false">("");
-  const [locationId, setLocationId] = useState("");
+  const [status, setStatus] = useState(ANY);
+  const [missingFilter, setMissingFilter] = useState<"any" | "true" | "false">("any");
+  const [locationId, setLocationId] = useState(ANY);
   const [createOpen, setCreateOpen] = useState(false);
   const [editItem, setEditItem] = useState<LinenItem | null>(null);
   const [missingItem, setMissingItem] = useState<LinenItem | null>(null);
@@ -50,8 +74,8 @@ export default function InventoryPage() {
   const queryArgs = useMemo(() => {
     const q: Record<string, string | number | boolean> = { page, limit };
     if (search.trim()) q.search = search.trim();
-    if (status) q.status = status;
-    if (locationId) q.location = locationId;
+    if (status && status !== ANY) q.status = status;
+    if (locationId && locationId !== ANY) q.location = locationId;
     if (missingFilter === "true") q.isMissing = true;
     if (missingFilter === "false") q.isMissing = false;
     return q;
@@ -62,14 +86,6 @@ export default function InventoryPage() {
   const [updateRow, updateState] = useUpdateInventoryItemMutation();
   const [markMissing, markState] = useMarkInventoryMissingMutation();
 
-  const forbidden =
-    (createState.error !== undefined &&
-      isFetchBaseQueryError(createState.error) &&
-      createState.error.status === 403) ||
-    (updateState.error !== undefined &&
-      isFetchBaseQueryError(updateState.error) &&
-      updateState.error.status === 403);
-
   return (
     <div className="space-y-8 luxury-enter">
       <PageHeader
@@ -78,7 +94,7 @@ export default function InventoryPage() {
         subtitle="Linen items tracked by RFID and item code."
         actions={
           isAdmin ? (
-            <Button type="button" variant="luxury" size="sm" onClick={() => setCreateOpen(true)}>
+            <Button type="button" variant="primary" size="sm" onClick={() => setCreateOpen(true)}>
               <Plus className="size-4" />
               Add item
             </Button>
@@ -87,9 +103,8 @@ export default function InventoryPage() {
       />
 
       <Card>
-        <CardContent className="grid gap-4 p-4 pt-6 md:grid-cols-2 lg:grid-cols-4">
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground lg:col-span-2">
-            Search (code or RFID)
+        <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Field label="Search (code or RFID)" className="lg:col-span-2">
             <form
               className="flex gap-2"
               onSubmit={(e) => {
@@ -103,64 +118,72 @@ export default function InventoryPage() {
                 Apply
               </Button>
             </form>
-          </label>
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-            Status
-            <select
+          </Field>
+          <Field label="Status" htmlFor="inv-status">
+            <Select
               value={status}
-              onChange={(e) => {
+              onValueChange={(v) => {
                 setPage(1);
-                setStatus(e.target.value);
+                setStatus(v);
               }}
-              className={fieldClassName()}
             >
-              <option value="">Any</option>
-              {LINEN_STATUS_VALUES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-            Location
-            <select
+              <SelectTrigger id="inv-status">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ANY}>Any status</SelectItem>
+                {LINEN_STATUS_VALUES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    <span className="capitalize">{s.replace(/-/g, " ")}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Location" htmlFor="inv-location">
+            <Select
               value={locationId}
-              onChange={(e) => {
+              onValueChange={(v) => {
                 setPage(1);
-                setLocationId(e.target.value);
+                setLocationId(v);
               }}
-              className={fieldClassName()}
             >
-              <option value="">Any</option>
-              {locations.map((loc) => (
-                <option key={`${loc.code}-${String(loc._id ?? loc.id ?? "")}`} value={String(loc._id ?? loc.id)}>
-                  {loc.name} ({loc.code})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground md:col-span-2">
-            Missing flag
-            <select
+              <SelectTrigger id="inv-location">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ANY}>Any location</SelectItem>
+                {locations.map((loc) => (
+                  <SelectItem
+                    key={`${loc.code}-${String(loc._id ?? loc.id ?? "")}`}
+                    value={String(loc._id ?? loc.id)}
+                  >
+                    {loc.name} ({loc.code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Missing flag" htmlFor="inv-missing" className="md:col-span-2 lg:col-span-2">
+            <Select
               value={missingFilter}
-              onChange={(e) => {
+              onValueChange={(v) => {
                 setPage(1);
-                setMissingFilter(e.target.value as "" | "true" | "false");
+                setMissingFilter(v as "any" | "true" | "false");
               }}
-              className={fieldClassName()}
             >
-              <option value="">Any</option>
-              <option value="true">Missing only</option>
-              <option value="false">Not missing</option>
-            </select>
-          </label>
+              <SelectTrigger id="inv-missing">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Any</SelectItem>
+                <SelectItem value="true">Missing only</SelectItem>
+                <SelectItem value="false">Not missing</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
         </CardContent>
       </Card>
-
-      {forbidden ? (
-        <p className="text-sm text-destructive">Your role cannot modify inventory metadata.</p>
-      ) : null}
 
       {!isLoading && !isError && data && data.items.length === 0 ? (
         <EmptyState
@@ -175,7 +198,10 @@ export default function InventoryPage() {
               id: "code",
               header: "Item code",
               cell: (row) => (
-                <Link href={`/dashboard/inventory/${itemId(row)}`} className="font-medium text-amber hover:underline">
+                <Link
+                  href={`/dashboard/inventory/${itemId(row)}`}
+                  className="font-medium text-[var(--brass)] hover:underline"
+                >
                   {row.itemCode}
                 </Link>
               ),
@@ -201,7 +227,7 @@ export default function InventoryPage() {
               header: "Missing",
               cell: (row) =>
                 row.isMissing ? (
-                  <Badge variant="outline" dot tone="critical">
+                  <Badge variant="outline" intent="danger" dot>
                     Yes
                   </Badge>
                 ) : (
@@ -254,74 +280,84 @@ export default function InventoryPage() {
         />
       ) : null}
 
-      {createOpen ? (
-        <InventoryFormModal
-          title="Add linen item"
-          submitLabel="Create"
-          loading={createState.isLoading}
-          error={createState.error}
-          locations={locations}
-          initial={null}
-          onClose={() => setCreateOpen(false)}
-          onSubmit={async (body) => {
+      <InventoryFormDialog
+        open={createOpen}
+        title="Add linen item"
+        submitLabel="Create"
+        loading={createState.isLoading}
+        locations={locations}
+        initial={null}
+        onClose={() => setCreateOpen(false)}
+        onSubmit={async (body) => {
+          try {
             await createRow(body as CreateInventoryBody).unwrap();
+            toast.success("Linen item created");
             setCreateOpen(false);
             void refetch();
-          }}
-        />
-      ) : null}
+          } catch (err) {
+            toast.error(errorMessage(err, "Could not create item"));
+          }
+        }}
+      />
 
-      {editItem ? (
-        <InventoryFormModal
-          title="Edit linen item"
-          submitLabel="Save"
-          loading={updateState.isLoading}
-          error={updateState.error}
-          locations={locations}
-          initial={editItem}
-          onClose={() => setEditItem(null)}
-          onSubmit={async (body) => {
+      <InventoryFormDialog
+        open={Boolean(editItem)}
+        title="Edit linen item"
+        submitLabel="Save"
+        loading={updateState.isLoading}
+        locations={locations}
+        initial={editItem}
+        onClose={() => setEditItem(null)}
+        onSubmit={async (body) => {
+          if (!editItem) return;
+          try {
             const id = itemId(editItem);
             await updateRow({ id, body: body as UpdateInventoryBody }).unwrap();
+            toast.success("Saved");
             setEditItem(null);
             void refetch();
-          }}
-        />
-      ) : null}
+          } catch (err) {
+            toast.error(errorMessage(err, "Could not save changes"));
+          }
+        }}
+      />
 
-      {missingItem ? (
-        <MarkMissingModal
-          item={missingItem}
-          loading={markState.isLoading}
-          error={markState.error}
-          onClose={() => setMissingItem(null)}
-          onSubmit={async (reason) => {
+      <MarkMissingDialog
+        item={missingItem}
+        loading={markState.isLoading}
+        onClose={() => setMissingItem(null)}
+        onSubmit={async (reason) => {
+          if (!missingItem) return;
+          try {
             await markMissing({ id: itemId(missingItem), reason }).unwrap();
+            toast.success(`${missingItem.itemCode} marked missing`);
             setMissingItem(null);
             void refetch();
-          }}
-        />
-      ) : null}
+          } catch (err) {
+            toast.error(errorMessage(err, "Could not update item"));
+          }
+        }}
+      />
     </div>
   );
 }
 
 type Loc = { _id?: string; id?: string; name: string; code: string };
 
-function InventoryFormModal({
+function InventoryFormDialog({
+  open,
   title,
   submitLabel,
   loading,
-  error,
   locations,
   initial,
   onClose,
   onSubmit,
 }: {
+  open: boolean;
   title: string;
   submitLabel: string;
   loading: boolean;
-  error: unknown;
   locations: Loc[];
   initial: LinenItem | null;
   onClose: () => void;
@@ -331,61 +367,66 @@ function InventoryFormModal({
   const [rfidTagId, setRfidTagId] = useState(initial?.rfidTagId ?? "");
   const [type, setType] = useState(initial?.type ?? "");
   const [location, setLocation] = useState(() => String(initial?.location ?? ""));
+  const isEdit = Boolean(initial);
 
-  const isEdit = !!initial;
+  useEffect(() => {
+    if (!open) return;
+    setItemCode(initial?.itemCode ?? "");
+    setRfidTagId(initial?.rfidTagId ?? "");
+    setType(initial?.type ?? "");
+    setLocation(String(initial?.location ?? ""));
+  }, [open, initial]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog">
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        aria-label="Dismiss"
-        onClick={onClose}
-      />
-      <Card className="relative z-[1] max-h-[90vh] w-full max-w-lg overflow-y-auto shadow-2xl">
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <label className="flex flex-col gap-1 text-xs font-medium">
-            Item code {!isEdit ? <span className="text-destructive">*</span> : null}
-            <Input value={itemCode} onChange={(e) => setItemCode(e.target.value)} required />
-          </label>
-          <label className="flex flex-col gap-1 text-xs font-medium">
-            RFID <span className="text-destructive">*</span>
-            <Input value={rfidTagId} onChange={(e) => setRfidTagId(e.target.value)} required />
-          </label>
-          <label className="flex flex-col gap-1 text-xs font-medium">
-            Type {!isEdit ? <span className="text-destructive">*</span> : null}
-            <Input value={type} onChange={(e) => setType(e.target.value)} placeholder="e.g. sheet" />
-          </label>
-          <label className="flex flex-col gap-1 text-xs font-medium">
-            Location (optional)
-            <select value={location} onChange={(e) => setLocation(e.target.value)} className={fieldClassName()}>
-              <option value="">—</option>
-              {locations.map((loc) => (
-                <option key={loc.code} value={String(loc._id ?? loc.id)}>
-                  {loc.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {isFetchBaseQueryError(error) ? (
-            <p className="text-sm text-destructive">
-              {(error.data && typeof error.data === "object" && "message" in error.data
-                ? String((error.data as { message?: unknown }).message)
-                : null) ?? `Request failed (${String(error.status)})`}
-            </p>
-          ) : null}
-        </CardContent>
-        <CardFooter className="justify-end gap-2 border-t border-border pt-4">
+    <Dialog open={open} onOpenChange={(o) => (!o ? onClose() : null)}>
+      <DialogContent size="md">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            {isEdit
+              ? "Update item metadata. Wash count and status are managed by scans."
+              : "Register a new RFID-tagged linen item."}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogBody className="space-y-3">
+          <Field label="Item code" required={!isEdit} htmlFor="inv-code">
+            <Input
+              id="inv-code"
+              value={itemCode}
+              onChange={(e) => setItemCode(e.target.value)}
+              placeholder="e.g. SHEET-001"
+              autoFocus
+            />
+          </Field>
+          <Field label="RFID tag" required htmlFor="inv-rfid">
+            <Input id="inv-rfid" value={rfidTagId} onChange={(e) => setRfidTagId(e.target.value)} />
+          </Field>
+          <Field label="Type" required={!isEdit} htmlFor="inv-type">
+            <Input id="inv-type" value={type} onChange={(e) => setType(e.target.value)} placeholder="e.g. sheet" />
+          </Field>
+          <Field label="Location" optional htmlFor="inv-form-loc">
+            <Select value={location || "__none__"} onValueChange={(v) => setLocation(v === "__none__" ? "" : v)}>
+              <SelectTrigger id="inv-form-loc">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— No location</SelectItem>
+                {locations.map((loc) => (
+                  <SelectItem key={loc.code} value={String(loc._id ?? loc.id)}>
+                    {loc.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        </DialogBody>
+        <DialogFooter>
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
           <Button
             type="button"
-            variant="default"
+            variant="primary"
             disabled={loading || !itemCode.trim() || !rfidTagId.trim() || !type.trim()}
             onClick={async () => {
               const lid = location || null;
@@ -408,60 +449,62 @@ function InventoryFormModal({
           >
             {submitLabel}
           </Button>
-        </CardFooter>
-      </Card>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function MarkMissingModal({
+function MarkMissingDialog({
   item,
   loading,
-  error,
   onClose,
   onSubmit,
 }: {
-  item: LinenItem;
+  item: LinenItem | null;
   loading: boolean;
-  error: unknown;
   onClose: () => void;
   onSubmit: (reason: string) => Promise<void>;
 }) {
   const [reason, setReason] = useState("");
+
+  useEffect(() => {
+    if (item) setReason("");
+  }, [item]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog">
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        aria-label="Dismiss"
-        onClick={onClose}
-      />
-      <Card className="relative z-[1] w-full max-w-md shadow-2xl">
-        <CardHeader>
-          <CardTitle>Mark missing</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Flag <span className="font-mono text-foreground">{item.itemCode}</span> as missing. This creates a critical
-            alert.
-          </p>
-          <label className="flex flex-col gap-1 text-xs font-medium">
-            Reason (optional)
-            <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Not returned from floor" />
-          </label>
-          {isFetchBaseQueryError(error) ? (
-            <p className="text-sm text-destructive">Could not update item ({String(error.status)})</p>
-          ) : null}
-        </CardContent>
-        <CardFooter className="justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="button" variant="destructive" disabled={loading} onClick={() => onSubmit(reason)}>
-            Confirm
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
+    <Dialog open={Boolean(item)} onOpenChange={(o) => (!o ? onClose() : null)}>
+      {item ? (
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>Mark missing</DialogTitle>
+            <DialogDescription>
+              Flag <span className="font-mono text-foreground">{item.itemCode}</span> as missing. This will create a
+              critical alert.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <Field label="Reason" optional htmlFor="missing-reason">
+              <Input
+                id="missing-reason"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="e.g. Not returned from floor"
+                autoFocus
+              />
+            </Field>
+          </DialogBody>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" disabled={loading} onClick={() => onSubmit(reason)}>
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      ) : null}
+    </Dialog>
   );
 }
+

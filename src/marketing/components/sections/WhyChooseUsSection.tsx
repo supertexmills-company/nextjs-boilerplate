@@ -1,5 +1,7 @@
 "use client";
 
+import { CheckCircle2 } from "lucide-react";
+
 import AppImage from "@/marketing/components/ui/AppImage";
 
 interface ReasonItem {
@@ -9,106 +11,91 @@ interface ReasonItem {
 
 const reasons: ReasonItem[] = [
   {
-    title: "Consistent Quality",
+    title: "Operational blind spots",
     description:
-      "Reliable home textile supply with standards buyers can trust across repeated orders.",
+      "Teams often lose visibility once items move across departments, creating hidden losses that grow unnoticed.",
   },
   {
-    title: "Flexible MOQs",
+    title: "Manual tracking burden",
     description:
-      "Low and negotiable minimum order quantities that make scaling easier for every buyer profile.",
+      "Spreadsheets, audits, and fragmented reporting consume valuable time and still leave room for costly errors.",
   },
   {
-    title: "Transparent Pricing",
+    title: "Replacement cost leakage",
     description:
-      "Clear quotations with no hidden costs, helping teams budget with confidence.",
+      "Unclear usage and lifecycle data causes avoidable purchases and unnecessary replacement spend.",
   },
   {
-    title: "Global Trust",
+    title: "Lack of control at scale",
     description:
-      "Supplying buyers across UK, USA, Canada, and Australia with dependable service.",
+      "As properties grow, leaders struggle to maintain consistent standards and accountability across locations.",
   },
 ];
 
 export default function WhyChooseUsSection() {
   return (
-    <section id="why-choose-us" className="bg-altimeter px-6 py-28 lg:py-32">
+    <section id="why-choose-us" className="bg-[var(--porcelain)] px-6 py-28 lg:py-32">
       <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
         <div className="relative">
-          <div className="relative overflow-hidden rounded-[2rem] border border-navy/10 bg-white shadow-[0_24px_60px_rgba(7,19,39,0.12)]">
+          <div className="relative overflow-hidden rounded-[32px] border border-border bg-[var(--linen)] shadow-[var(--e2)]">
             <div className="relative aspect-[4/5]">
               <AppImage
                 src="/marketing/programs/hotels-resorts.png"
-                alt="Premium hospitality linen supply partnership"
+                alt="Premium hospitality textile partnership"
                 fill
                 className="h-full w-full object-cover"
                 sizes="(max-width: 1024px) 100vw, 36vw"
               />
             </div>
-          </div>
-
-          <div className="absolute -top-6 -right-2 rounded-3xl bg-navy px-8 py-7 text-altimeter shadow-[0_20px_40px_rgba(11,29,58,0.28)]">
-            <p className="font-display text-5xl font-semibold leading-none">
-              50+
-            </p>
-            <p className="mt-2 text-sm font-medium tracking-wide text-altimeter/80">
-              Global Clients
-            </p>
-          </div>
-
-          <div className="absolute -bottom-10 -left-4 hidden w-52 overflow-hidden rounded-2xl border border-navy/10 bg-white shadow-[0_20px_50px_rgba(7,19,39,0.12)] md:block">
-            <div className="relative aspect-[4/3]">
-              <AppImage
-                src="/marketing/programs/commercial-laundry.png"
-                alt="Trusted sourcing partnership"
-                fill
-                className="h-full w-full object-cover"
-                sizes="220px"
-              />
+            {/* Anchored brass chip — inside image frame */}
+            <div className="absolute bottom-5 left-5 rounded-[18px] border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[var(--surface)]/92 px-6 py-5 text-[var(--text)] shadow-[var(--e2)] backdrop-blur">
+              <p className="font-display text-4xl font-semibold leading-none text-[var(--accent)]">50+</p>
+              <p className="mt-1.5 text-[11px] font-medium uppercase tracking-[var(--tracking-widest2)] text-[var(--text-soft)]">
+                Global clients
+              </p>
             </div>
           </div>
         </div>
 
         <div>
-          <p className="mb-4 text-[11px] font-semibold tracking-widest2 text-amber uppercase">
-            Why choose us
-          </p>
+          <p className="kicker mb-3">The problem</p>
 
-          <h2 className="font-display text-[clamp(2rem,4.5vw,3.8rem)] font-light leading-[1.08] text-navy italic">
-            ThreadLyne Global
-            <br />
-            <span className="font-semibold not-italic">
-              Your Trusted Hotel Linen Supply Partner
-            </span>
+          <h2 className="font-display text-[clamp(2rem,4.5vw,3.6rem)] font-medium leading-[1.05] tracking-[var(--tracking-heading)] text-foreground">
+            Hotel textile operations are often managed with limited visibility.
           </h2>
 
-          <p className="mt-5 max-w-2xl text-lg font-light leading-relaxed text-brand-muted">
-            Choosing the right hospitality linen supplier is about reliability,
-            consistency, and trust. Our sourcing model is built around the
-            values that matter most to global buyers.
+          <p className="mt-5 max-w-2xl text-[17px] leading-relaxed text-muted-foreground">
+            When inventory movement cannot be seen clearly, losses rise quietly, audits become manual, and operational
+            decisions are delayed. The result is higher cost and lower control.
           </p>
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2">
             {reasons.map((item) => (
               <article
                 key={item.title}
-                className="group rounded-2xl border border-navy/10 bg-white/90 p-6 shadow-[0_10px_30px_rgba(7,19,39,0.06)] transition-all duration-300 hover:-translate-y-1 hover:border-amber/35 hover:shadow-[0_16px_34px_rgba(7,19,39,0.12)]"
+                className="luxury-card group p-6 transition-colors duration-200 hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--border))]"
               >
-                <div className="mb-4 h-1.5 w-10 rounded-full bg-amber" />
-                <h3 className="font-display text-2xl font-semibold text-navy">
+                <div className="mb-4 flex size-9 items-center justify-center rounded-[14px] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]">
+                  <CheckCircle2 className="size-4" strokeWidth={1.8} />
+                </div>
+                <h3 className="font-display text-xl font-medium tracking-[var(--tracking-heading)] text-foreground">
                   {item.title}
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-brand-muted">
-                  {item.description}
-                </p>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{item.description}</p>
               </article>
             ))}
           </div>
 
-          <p className="mt-8 text-base leading-relaxed text-brand-muted">
-            With ThreadLyne Global, you gain a partner committed to simplifying
-            linen sourcing with transparency and reliability.
-          </p>
+          <div className="mt-8 rounded-[22px] border border-[color-mix(in_srgb,var(--accent)_24%,var(--border))] bg-[color-mix(in_srgb,var(--accent)_6%,var(--surface))] p-6">
+            <p className="kicker mb-2">The solution</p>
+            <p className="font-display text-[1.35rem] leading-tight text-foreground">
+              A real-time hotel operations intelligence platform for complete visibility and control.
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              Monitor linen, uniforms, and textile assets across operations, detect abnormal patterns early, and
+              improve inventory decisions with confidence.
+            </p>
+          </div>
         </div>
       </div>
     </section>

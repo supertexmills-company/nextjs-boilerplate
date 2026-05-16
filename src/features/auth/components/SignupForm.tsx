@@ -5,21 +5,34 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useSignupMutation } from "@/features/auth/api/authApi";
 
 import { AuthPasswordField } from "./AuthPasswordField";
 import { AuthShell } from "./AuthShell";
 
+function isEmail(v: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+}
+
 export function SignupForm() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [touched, setTouched] = useState({ name: false, email: false, password: false });
   const [signup, { isLoading, error }] = useSignupMutation();
+
+  const nameError = touched.name && name.trim().length < 2 ? "Please enter your name." : undefined;
+  const emailError = touched.email && !isEmail(email) ? "Enter a valid email address." : undefined;
+  const passwordError =
+    touched.password && password.length < 8 ? "Use at least 8 characters for a stronger password." : undefined;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setTouched({ name: true, email: true, password: true });
+    if (name.trim().length < 2 || !isEmail(email) || password.length < 8) return;
     try {
       const user = await signup({ name, email, password }).unwrap();
       router.push(user.role === "admin" ? "/dashboard/admin" : "/dashboard");
@@ -30,42 +43,35 @@ export function SignupForm() {
 
   return (
     <AuthShell
-      title={<>Create account</>}
-      description={<>Join your team on LineTrack.</>}
+      title="Create account"
+      description="Join your team on Tantava."
+      topRight={
+        <Link href="/login" className="font-medium text-[var(--accent)] underline-offset-4 hover:underline">
+          Sign in instead
+        </Link>
+      }
       footer={
-        <p className="text-center text-sm text-muted-foreground">
-          Already registered?{" "}
-          <Link href="/login" className="font-medium text-amber underline-offset-4 hover:text-amber-light hover:underline">
-            Sign in
-          </Link>
-          {" · "}
-          <Link href="/" className="underline-offset-4 hover:text-foreground hover:underline">
-            Back to home
-          </Link>
+        <p className="text-center text-xs text-muted-foreground">
+          By creating an account, you agree to our operator terms and privacy practices.
         </p>
       }
     >
-      <form onSubmit={onSubmit} className="space-y-5">
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground" htmlFor="name">
-            Name
-          </label>
+      <form onSubmit={onSubmit} className="space-y-5" noValidate>
+        <Field label="Name" htmlFor="name" error={nameError}>
           <Input
             id="name"
             name="name"
             type="text"
             autoComplete="name"
-            placeholder="John Doe"
+            placeholder="Jane Doe"
             required
             value={name}
             onChange={(ev) => setName(ev.target.value)}
-            className="h-11 bg-background/80"
+            onBlur={() => setTouched((t) => ({ ...t, name: true }))}
+            aria-invalid={Boolean(nameError) || undefined}
           />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground" htmlFor="email">
-            Email
-          </label>
+        </Field>
+        <Field label="Email" htmlFor="email" error={emailError}>
           <Input
             id="email"
             name="email"
@@ -75,13 +81,11 @@ export function SignupForm() {
             required
             value={email}
             onChange={(ev) => setEmail(ev.target.value)}
-            className="h-11 bg-background/80"
+            onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+            aria-invalid={Boolean(emailError) || undefined}
           />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground" htmlFor="password">
-            Password
-          </label>
+        </Field>
+        <Field label="Password" htmlFor="password" error={passwordError} helper="At least 8 characters.">
           <AuthPasswordField
             id="password"
             name="password"
@@ -90,14 +94,19 @@ export function SignupForm() {
             required
             value={password}
             onChange={(ev) => setPassword(ev.target.value)}
+            onBlur={() => setTouched((t) => ({ ...t, password: true }))}
+            aria-invalid={Boolean(passwordError) || undefined}
           />
-        </div>
+        </Field>
         {error && (
-          <p className="text-sm text-destructive" role="alert">
+          <p
+            className="rounded-[14px] border border-[color-mix(in_srgb,var(--danger)_24%,transparent)] bg-[color-mix(in_srgb,var(--danger)_8%,transparent)] px-4 py-3 text-sm text-[var(--danger)]"
+            role="alert"
+          >
             Unable to create account. This email may already be registered, or the API may be unreachable.
           </p>
         )}
-        <Button type="submit" variant="luxury" size="lg" className="h-11 w-full rounded-full" disabled={isLoading}>
+        <Button type="submit" variant="primary" size="lg" className="w-full" disabled={isLoading}>
           {isLoading ? "Creating account…" : "Create account"}
         </Button>
       </form>

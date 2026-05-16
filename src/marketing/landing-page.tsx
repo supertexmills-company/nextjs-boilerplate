@@ -10,16 +10,15 @@ import BookingSection from "@/marketing/components/sections/BookingSection";
 
 export function MarketingLandingPage() {
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-altimeter font-sans text-navy">
-      <div className="grain" aria-hidden />
+    <div className="relative min-h-screen overflow-x-hidden font-sans text-foreground">
       <Header />
-      <main>
+      <main id="main-content">
         <HeroSection />
-        <CredibilityBar />
-        <ProgramsSection />
         <WhyChooseUsSection />
         <JourneySection />
+        <CredibilityBar />
         <TestimonialsSection />
+        <ProgramsSection />
         <BookingSection />
       </main>
       <Footer />

@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, Layers, Radio, ScanLine } from "lucide-react";
+import { AlertTriangle, Layers, Radio, ScanLine, ShieldAlert } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/features/dashboard/components/DataTable";
 import { MetricTile } from "@/features/dashboard/components/MetricTile";
@@ -23,22 +24,22 @@ export default function AdminUsersPage() {
 
   if (role !== "admin") {
     return (
-      <Card className="luxury-card luxury-enter max-w-lg">
+      <Card accent className="luxury-enter mx-auto max-w-xl">
         <CardHeader>
+          <div className="mb-2 flex size-10 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--brass)_12%,transparent)] text-[var(--brass)]">
+            <ShieldAlert className="size-5" />
+          </div>
           <p className="kicker">Access</p>
-          <CardTitle className="font-display text-2xl font-light">Admin area</CardTitle>
+          <CardTitle>Admin area</CardTitle>
           <CardDescription>
-            Admin routes require an account with the <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-xs">admin</code>{" "}
-            role.
+            Admin routes require an account with the{" "}
+            <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-xs">admin</code> role.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Link
-            href="/dashboard"
-            className="text-sm font-medium text-amber underline-offset-4 transition-colors hover:text-amber-light hover:underline"
-          >
-            Back to overview
-          </Link>
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/dashboard">Back to overview</Link>
+          </Button>
         </CardContent>
       </Card>
     );
@@ -60,26 +61,27 @@ export default function AdminUsersPage() {
         </div>
       ) : summary.data ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricTile label="Total items" value={summary.data.totalItems} icon={<Layers />} />
+          <MetricTile label="Total items" value={summary.data.totalItems.toLocaleString()} icon={<Layers />} />
           <MetricTile
             label="Missing"
-            value={summary.data.missingItems}
+            value={summary.data.missingItems.toLocaleString()}
             variant={summary.data.missingItems > 0 ? "alert" : "default"}
             icon={<AlertTriangle />}
           />
           <MetricTile
             label="Active alerts"
-            value={summary.data.activeAlerts}
+            value={summary.data.activeAlerts.toLocaleString()}
             variant={summary.data.activeAlerts > 0 ? "alert" : "default"}
             icon={<Radio />}
           />
-          <MetricTile label="Scans (24h)" value={summary.data.scansInWindow} icon={<ScanLine />} />
+          <MetricTile label="Scans (24h)" value={summary.data.scansInWindow.toLocaleString()} icon={<ScanLine />} />
         </div>
       ) : null}
 
-      <div className="space-y-3">
-        <h2 className="font-display text-lg font-light text-foreground">Users</h2>
-        <p className="text-sm text-muted-foreground">Directory of accounts authorized for LineTrack.</p>
+      <div className="space-y-2">
+        <p className="kicker">Directory</p>
+        <h2 className="font-display text-2xl font-medium tracking-[var(--tracking-heading)] text-foreground">Users</h2>
+        <p className="text-sm text-muted-foreground">Accounts authorized for Tantava Operations.</p>
       </div>
 
       <DataTable
@@ -98,7 +100,7 @@ export default function AdminUsersPage() {
             id: "role",
             header: "Role",
             cell: (u) => (
-              <Badge variant="outline" dot tone={u.role === "admin" ? "admin" : "user"}>
+              <Badge variant="outline" intent={u.role === "admin" ? "brand" : "neutral"} dot>
                 <span className="capitalize">{u.role}</span>
               </Badge>
             ),

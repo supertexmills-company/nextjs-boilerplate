@@ -7,8 +7,20 @@ import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import {
   useGetInventoryItemQuery,
   useMarkInventoryMissingMutation,
@@ -20,9 +32,18 @@ import { PageHeader } from "@/features/dashboard/components/PageHeader";
 import { Skeleton } from "@/features/dashboard/components/Skeleton";
 import { useAppSelector } from "@/store/hooks";
 import { LINEN_STATUS_VALUES } from "@/shared/constants/domain";
-import { fieldClassName } from "@/shared/styles/form";
 import { formatTimeAgo } from "@/lib/format-relative";
 import { isFetchBaseQueryError } from "@/lib/rtk-errors";
+
+function errorMessage(err: unknown, fallback: string) {
+  if (isFetchBaseQueryError(err)) {
+    if (err.data && typeof err.data === "object" && "message" in err.data) {
+      return String((err.data as { message?: unknown }).message ?? fallback);
+    }
+    return `${fallback} (${String(err.status)})`;
+  }
+  return fallback;
+}
 
 export default function InventoryDetailPage() {
   const params = useParams();
@@ -94,7 +115,15 @@ export default function InventoryDetailPage() {
               </Button>
             ) : null}
             {!item.isMissing ? (
-              <Button type="button" variant="destructive" size="sm" onClick={() => setReasonOpen(true)}>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  setReason("");
+                  setReasonOpen(true);
+                }}
+              >
                 Mark missing
               </Button>
             ) : null}
@@ -108,7 +137,7 @@ export default function InventoryDetailPage() {
             <CardTitle className="flex flex-wrap items-center gap-3">
               <LinenStatusBadge status={item.status} />
               {item.isMissing ? (
-                <Badge variant="outline" dot tone="critical">
+                <Badge variant="outline" intent="danger" dot>
                   Missing
                 </Badge>
               ) : null}
@@ -120,17 +149,17 @@ export default function InventoryDetailPage() {
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Wash cycles</p>
+              <p className="kicker">Wash cycles</p>
               <p className="font-mono text-2xl tabular-nums text-foreground">{item.washCount}</p>
             </div>
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Last scan</p>
+              <p className="kicker">Last scan</p>
               <p className="text-sm text-foreground">
                 {item.lastScannedAt ? formatTimeAgo(item.lastScannedAt, { addSuffix: true }) : "—"}
               </p>
             </div>
             <div className="sm:col-span-2">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Recommended action</p>
+              <p className="kicker">Recommended action</p>
               <p className="capitalize text-foreground">{item.recommendedAction?.replace(/-/g, " ") ?? "—"}</p>
             </div>
           </CardContent>
@@ -139,7 +168,7 @@ export default function InventoryDetailPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <MapPin className="size-4 text-amber" />
+              <MapPin className="size-4 text-[var(--brass)]" />
               Location
             </CardTitle>
           </CardHeader>
@@ -151,114 +180,114 @@ export default function InventoryDetailPage() {
             ) : (
               <p className="text-sm text-muted-foreground">No location assigned.</p>
             )}
-            <Button asChild variant="link" className="mt-2 h-auto px-0 text-amber">
+            <Button asChild variant="link" className="mt-2 h-auto px-0">
               <Link href="/dashboard/locations">Manage locations</Link>
             </Button>
           </CardContent>
         </Card>
       </div>
 
-      {reasonOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            aria-label="Dismiss"
-            onClick={() => setReasonOpen(false)}
-          />
-          <Card className="relative z-[1] w-full max-w-md shadow-2xl">
-            <CardHeader>
-              <CardTitle>Mark missing</CardTitle>
-              <CardDescription>Creates a critical alert and updates stock signals.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (optional)" />
-              {markState.error !== undefined && isFetchBaseQueryError(markState.error) ? (
-                <p className="text-sm text-destructive">Update failed.</p>
-              ) : null}
-            </CardContent>
-            <CardFooter className="justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={() => setReasonOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                disabled={markState.isLoading}
-                onClick={async () => {
+      <Dialog open={reasonOpen} onOpenChange={setReasonOpen}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>Mark missing</DialogTitle>
+            <DialogDescription>Creates a critical alert and updates stock signals.</DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <Field label="Reason" optional htmlFor="missing-reason-detail">
+              <Input
+                id="missing-reason-detail"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="e.g. Not returned from floor"
+                autoFocus
+              />
+            </Field>
+          </DialogBody>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setReasonOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={markState.isLoading}
+              onClick={async () => {
+                try {
                   await markMissing({ id, reason }).unwrap();
+                  toast.success("Item marked missing");
                   setReasonOpen(false);
                   void refetch();
-                }}
-              >
-                Confirm
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
-      ) : null}
+                } catch (err) {
+                  toast.error(errorMessage(err, "Could not update item"));
+                }
+              }}
+            >
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {editOpen && isAdmin ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            aria-label="Dismiss"
-            onClick={() => setEditOpen(false)}
-          />
-          <Card className="relative z-[1] w-full max-w-lg shadow-2xl">
-            <CardHeader>
-              <CardTitle>Edit item</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <label className="flex flex-col gap-1 text-xs font-medium">
-                Wash count
-                <Input
-                  type="number"
-                  min={0}
-                  value={washCount}
-                  onChange={(e) => setWashCount(Number(e.target.value))}
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-xs font-medium">
-                Status
-                <select value={status} onChange={(e) => setStatus(e.target.value)} className={fieldClassName()}>
+      <Dialog open={editOpen && isAdmin} onOpenChange={(o) => (!o ? setEditOpen(false) : null)}>
+        <DialogContent size="md">
+          <DialogHeader>
+            <DialogTitle>Edit item</DialogTitle>
+            <DialogDescription>Adjust lifecycle metadata. Use with care — these values feed alerts.</DialogDescription>
+          </DialogHeader>
+          <DialogBody className="space-y-3">
+            <Field label="Wash count" htmlFor="edit-wash">
+              <Input
+                id="edit-wash"
+                type="number"
+                min={0}
+                value={washCount}
+                onChange={(e) => setWashCount(Number(e.target.value))}
+              />
+            </Field>
+            <Field label="Status" htmlFor="edit-status">
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger id="edit-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
                   {LINEN_STATUS_VALUES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
+                    <SelectItem key={s} value={s}>
+                      <span className="capitalize">{s.replace(/-/g, " ")}</span>
+                    </SelectItem>
                   ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1 text-xs font-medium">
-                Location
-                <select value={location} onChange={(e) => setLocation(e.target.value)} className={fieldClassName()}>
-                  <option value="">— None</option>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Location" optional htmlFor="edit-loc">
+              <Select
+                value={location || "__none__"}
+                onValueChange={(v) => setLocation(v === "__none__" ? "" : v)}
+              >
+                <SelectTrigger id="edit-loc">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— No location</SelectItem>
                   {locations.map((loc) => (
-                    <option key={loc.code} value={String(loc._id ?? loc.id)}>
+                    <SelectItem key={loc.code} value={String(loc._id ?? loc.id)}>
                       {loc.name}
-                    </option>
+                    </SelectItem>
                   ))}
-                </select>
-              </label>
-              {updateState.error !== undefined && isFetchBaseQueryError(updateState.error) ? (
-                <p className="text-sm text-destructive">
-                  {(updateState.error.data &&
-                  typeof updateState.error.data === "object" &&
-                  "message" in updateState.error.data
-                    ? String((updateState.error.data as { message?: unknown }).message)
-                    : null) ?? "Update failed."}
-                </p>
-              ) : null}
-            </CardContent>
-            <CardFooter className="justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={() => setEditOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                disabled={updateState.isLoading}
-                onClick={async () => {
+                </SelectContent>
+              </Select>
+            </Field>
+          </DialogBody>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={updateState.isLoading}
+              onClick={async () => {
+                try {
                   await updateItem({
                     id,
                     body: {
@@ -267,15 +296,18 @@ export default function InventoryDetailPage() {
                       ...(location ? { location } : { location: null }),
                     },
                   }).unwrap();
+                  toast.success("Item updated");
                   setEditOpen(false);
-                }}
-              >
-                Save
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
-      ) : null}
+                } catch (err) {
+                  toast.error(errorMessage(err, "Could not update item"));
+                }
+              }}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

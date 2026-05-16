@@ -3,76 +3,43 @@
 import { useEffect, useRef } from "react";
 
 interface LogEntry {
-  date: string;
-  name: string;
-  role: string;
-  metric: string;
-  metricCaption: string;
-  facilityLine: string;
-  entry: string;
+  title: string;
+  value: string;
+  detail: string;
+  trend: string;
 }
 
 const logEntries: LogEntry[] = [
   {
-    date: "NOV 14, 2025",
-    name: "Elena Marchetti",
-    role: "VP Operations · Flagship hotel group",
-    metric: "28%",
-    metricCaption: "linen spend vs prior year",
-    facilityLine: "EMEA · 9 properties",
-    entry:
-      "We stopped funding mystery shrink. Par levels by tower are boring in the best way — housekeeping and finance finally share one number.",
+    title: "Inventory overview",
+    value: "98.7%",
+    detail: "Inventory confidence across active hotel operations",
+    trend: "+4.1% quarter-over-quarter",
   },
   {
-    date: "OCT 03, 2025",
-    name: "James Okoro",
-    role: "Director of Support Services · Acute care network",
-    metric: "4.2M",
-    metricCaption: "tagged pieces in service",
-    facilityLine: "US Southeast · 6 hospitals",
-    entry:
-      "Infection prevention asked for lineage on isolation gowns. We deliver scan history in seconds, not a three-day file chase.",
+    title: "Missing item alerts",
+    value: "42",
+    detail: "High-priority exceptions resolved this month",
+    trend: "Faster intervention workflows",
   },
   {
-    date: "SEP 21, 2025",
-    name: "Sofia Lindström",
-    role: "Plant Manager · Industrial laundry",
-    metric: "12 min",
-    metricCaption: "average inbound cage reconcile",
-    facilityLine: "Nordics · single plant",
-    entry:
-      "Mis-sorts to our largest hotel contract dropped hard once dispatch reads were mandatory. Drivers see exceptions before they seal the trailer.",
+    title: "Usage analytics",
+    value: "12%",
+    detail: "Reduction in avoidable replacement spend",
+    trend: "Improved lifecycle decisions",
   },
   {
-    date: "AUG 07, 2025",
-    name: "Marcus Webb",
-    role: "COO · Textile rental",
-    metric: "18%",
-    metricCaption: "fewer billing disputes",
-    facilityLine: "National routes · workwear",
-    entry:
-      "Customers used to argue delivery counts. Now scans at drop-off and pickup settle it. Sales actually likes us again.",
+    title: "Cost tracking",
+    value: "Up to 70%",
+    detail: "Operational loss reduction potential",
+    trend: "Measured from baseline to steady-state operations",
   },
-  {
-    date: "JUL 18, 2025",
-    name: "Priya Nandakumar",
-    role: "Head of Procurement · Facility management",
-    metric: "3 days",
-    metricCaption: "rolled portfolio audit",
-    facilityLine: "Mixed sites · FM contract",
-    entry:
-      "We inherited linen from three vendors. LineTrack gave us one item master and a single dashboard for the client steering committee.",
-  },
-  {
-    date: "JUN 29, 2025",
-    name: "Tomás Álvarez",
-    role: "Laundry Manager · Full-service hospital",
-    metric: "99.1%",
-    metricCaption: "cycle count accuracy (trial)",
-    facilityLine: "LATAM · 800 beds",
-    entry:
-      "Handhelds on the clean-stock cage replaced Sunday clipboards. Nurses notice when carts are full; I notice when pieces go missing.",
-  },
+];
+
+const trustSignals = [
+  "Built for large-scale hospitality operations",
+  "Designed for operational excellence in premium hotel groups",
+  "Trusted for improving inventory efficiency and control",
 ];
 
 export default function TestimonialsSection() {
@@ -88,69 +55,65 @@ export default function TestimonialsSection() {
           }
         });
       },
-      { threshold: 0.1, rootMargin: "0px 0px -40px 0px" }
+      { threshold: 0.1, rootMargin: "0px 0px -40px 0px" },
     );
-
     entryRefs.current.forEach((el) => {
       if (el) observer.observe(el);
     });
-
     return () => observer.disconnect();
   }, []);
 
   return (
-    <section id="stories" className="bg-altimeter px-6 py-32">
+    <section id="stories" className="bg-[var(--porcelain)] px-6 py-28 md:py-32">
       <div className="mx-auto max-w-5xl">
-        <div className="mb-16">
-          <p className="mb-4 text-[11px] font-semibold tracking-widest2 text-amber uppercase">
-            Field notes
-          </p>
-          <h2 className="font-display text-[clamp(2.2rem,4.5vw,3.8rem)] font-light leading-[1.08] text-navy italic">
-            Written by operators.
-            <br />
-            <span className="font-semibold not-italic">Measured on the floor.</span>
+        <div className="mb-14 md:mb-16">
+          <p className="kicker mb-3">Dashboard preview</p>
+          <h2 className="font-display text-[clamp(2.2rem,4.5vw,3.6rem)] font-medium leading-[1.02] tracking-[var(--tracking-display)] text-foreground">
+            A premium command view for hotel operations.
           </h2>
+          <p className="mt-4 max-w-2xl text-[17px] leading-relaxed text-muted-foreground">
+            Monitor inventory, usage, cost impact, and operational exceptions in one enterprise-grade interface built for
+            fast, confident decisions.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-px bg-navy/8 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           {logEntries.map((log, index) => (
-            <div
-              key={log.name}
+            <article
+              key={log.title}
               ref={(el) => {
                 entryRefs.current[index] = el;
               }}
-              className="log-entry bg-altimeter p-8 transition-colors duration-300 hover:bg-white"
-              style={{ transitionDelay: `${(index % 2) * 0.1}s` }}
+              className="log-entry luxury-card p-7 md:p-8"
+              style={{ transitionDelay: `${(index % 2) * 80}ms` }}
             >
-              <div className="mb-6 flex items-start justify-between">
-                <div>
-                  <p className="mb-1 text-[10px] font-bold tracking-widest2 text-amber uppercase">
-                    {log.date}
-                  </p>
-                  <p className="text-[10px] font-medium tracking-wide text-brand-muted/60 uppercase">
-                    {log.facilityLine}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-display text-2xl font-light text-navy">
-                    {log.metric}
-                  </p>
-                  <p className="text-[10px] tracking-wide text-brand-muted/60 uppercase">
-                    {log.metricCaption}
-                  </p>
-                </div>
-              </div>
-
-              <p className="font-display mb-6 text-[1.05rem] leading-relaxed text-navy/75 italic">
-                &ldquo;{log.entry}&rdquo;
+              <p className="kicker mb-3">{log.title}</p>
+              <p className="font-mono text-[clamp(2rem,4vw,2.6rem)] font-semibold leading-none tracking-[var(--tracking-display)] text-[var(--accent)] tabular-nums">
+                {log.value}
               </p>
-
-              <div className="border-t border-navy/8 pt-5">
-                <p className="text-sm font-semibold text-navy">{log.name}</p>
-                <p className="mt-0.5 text-xs text-brand-muted/60">{log.role}</p>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{log.detail}</p>
+              <div className="mt-5 inline-flex items-center rounded-full border border-[color-mix(in_srgb,var(--accent)_28%,transparent)] bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] px-3 py-1.5">
+                <p className="text-[11px] font-medium tracking-wide text-[var(--accent)] uppercase">
+                  {log.trend}
+                </p>
               </div>
-            </div>
+            </article>
           ))}
+        </div>
+
+        <div className="mt-8 rounded-[24px] border border-border bg-[var(--surface)] p-6 shadow-[var(--e1)] md:p-8">
+          <p className="kicker mb-4">Trust and credibility</p>
+          <div className="grid gap-3 md:grid-cols-3">
+            {trustSignals.map((signal, index) => (
+              <p
+                key={signal}
+                className="rounded-[16px] border border-border bg-[var(--surface)] px-4 py-4 text-sm leading-relaxed text-muted-foreground"
+                style={{ transitionDelay: `${index * 70}ms` }}
+              >
+                {signal}
+              </p>
+            ))}
+          </div>
         </div>
       </div>
     </section>

@@ -5,20 +5,31 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useLoginMutation } from "@/features/auth/api/authApi";
 
 import { AuthPasswordField } from "./AuthPasswordField";
 import { AuthShell } from "./AuthShell";
 
+function isEmail(v: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+}
+
 export function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [touched, setTouched] = useState({ email: false, password: false });
   const [login, { isLoading, error }] = useLoginMutation();
+
+  const emailError = touched.email && !isEmail(email) ? "Enter a valid email address." : undefined;
+  const passwordError = touched.password && password.length < 6 ? "Password is at least 6 characters." : undefined;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setTouched({ email: true, password: true });
+    if (!isEmail(email) || password.length < 6) return;
     try {
       const user = await login({ email, password }).unwrap();
       router.push(user.role === "admin" ? "/dashboard/admin" : "/dashboard");
@@ -29,26 +40,24 @@ export function LoginForm() {
 
   return (
     <AuthShell
-      title={<>Sign in</>}
-      description={<>Use your LineTrack operator account.</>}
+      title="Sign in"
+      description="Use your Tantava operator account."
+      topRight={
+        <Link
+          href="/signup"
+          className="font-medium text-[var(--accent)] underline-offset-4 hover:underline"
+        >
+          Create account
+        </Link>
+      }
       footer={
-        <p className="text-center text-sm text-muted-foreground">
-          New here?{" "}
-          <Link href="/signup" className="font-medium text-amber underline-offset-4 hover:text-amber-light hover:underline">
-            Create an account
-          </Link>
-          {" · "}
-          <Link href="/" className="underline-offset-4 hover:text-foreground hover:underline">
-            Back to home
-          </Link>
+        <p className="text-center text-xs text-muted-foreground">
+          By signing in, you agree to our operator terms and privacy practices.
         </p>
       }
     >
-      <form onSubmit={onSubmit} className="space-y-5">
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground" htmlFor="email">
-            Email
-          </label>
+      <form onSubmit={onSubmit} className="space-y-5" noValidate>
+        <Field label="Email" htmlFor="email" error={emailError}>
           <Input
             id="email"
             name="email"
@@ -58,13 +67,11 @@ export function LoginForm() {
             required
             value={email}
             onChange={(ev) => setEmail(ev.target.value)}
-            className="h-11 bg-background/80"
+            onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+            aria-invalid={Boolean(emailError) || undefined}
           />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground" htmlFor="password">
-            Password
-          </label>
+        </Field>
+        <Field label="Password" htmlFor="password" error={passwordError}>
           <AuthPasswordField
             id="password"
             name="password"
@@ -73,14 +80,19 @@ export function LoginForm() {
             required
             value={password}
             onChange={(ev) => setPassword(ev.target.value)}
+            onBlur={() => setTouched((t) => ({ ...t, password: true }))}
+            aria-invalid={Boolean(passwordError) || undefined}
           />
-        </div>
+        </Field>
         {error && (
-          <p className="text-sm text-destructive" role="alert">
+          <p
+            className="rounded-[14px] border border-[color-mix(in_srgb,var(--danger)_24%,transparent)] bg-[color-mix(in_srgb,var(--danger)_8%,transparent)] px-4 py-3 text-sm text-[var(--danger)]"
+            role="alert"
+          >
             Unable to sign in. Check your credentials and that the API is reachable.
           </p>
         )}
-        <Button type="submit" variant="luxury" size="lg" className="h-11 w-full rounded-full" disabled={isLoading}>
+        <Button type="submit" variant="primary" size="lg" className="w-full" disabled={isLoading}>
           {isLoading ? "Signing in…" : "Sign in"}
         </Button>
       </form>

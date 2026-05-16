@@ -1,12 +1,25 @@
 "use client";
 
 import { MapPin, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { toast } from "@/components/ui/toast";
 import type { LocationRecord } from "@/entities/locations/types";
 import { DataTable } from "@/features/dashboard/components/DataTable";
 import { LocationCategoryBadge } from "@/features/dashboard/components/enum-badges";
@@ -22,11 +35,22 @@ import {
 } from "@/features/locations/api/locationsApi";
 import { useAppSelector } from "@/store/hooks";
 import { LOCATION_CATEGORY_VALUES } from "@/shared/constants/domain";
-import { fieldClassName } from "@/shared/styles/form";
 import { isFetchBaseQueryError } from "@/lib/rtk-errors";
+
+const ANY = "__any__";
 
 function locId(row: LocationRecord) {
   return String(row._id ?? row.id ?? "");
+}
+
+function errorMessage(err: unknown, fallback: string) {
+  if (isFetchBaseQueryError(err)) {
+    if (err.data && typeof err.data === "object" && "message" in err.data) {
+      return String((err.data as { message?: unknown }).message ?? fallback);
+    }
+    return `${fallback} (${String(err.status)})`;
+  }
+  return fallback;
 }
 
 export default function LocationsPage() {
@@ -35,16 +59,17 @@ export default function LocationsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [searchDraft, setSearchDraft] = useState("");
-  const [category, setCategory] = useState("");
-  const [activeOnly, setActiveOnly] = useState<"" | "true" | "false">("true");
+  const [category, setCategory] = useState(ANY);
+  const [activeOnly, setActiveOnly] = useState<"true" | "false" | "all">("true");
   const [createOpen, setCreateOpen] = useState(false);
   const [editLoc, setEditLoc] = useState<LocationRecord | null>(null);
+  const [confirmDeactivate, setConfirmDeactivate] = useState<LocationRecord | null>(null);
   const limit = 20;
 
   const queryArgs = useMemo(() => {
     const q: Record<string, string | number | boolean> = { page, limit };
     if (search.trim()) q.search = search.trim();
-    if (category) q.category = category;
+    if (category && category !== ANY) q.category = category;
     if (activeOnly === "true") q.isActive = true;
     if (activeOnly === "false") q.isActive = false;
     return q;
@@ -65,7 +90,7 @@ export default function LocationsPage() {
         }
         actions={
           isAdmin ? (
-            <Button type="button" variant="luxury" size="sm" onClick={() => setCreateOpen(true)}>
+            <Button type="button" variant="primary" size="sm" onClick={() => setCreateOpen(true)}>
               <Plus className="size-4" />
               Add location
             </Button>
@@ -75,53 +100,64 @@ export default function LocationsPage() {
 
       {!isAdmin ? (
         <p className="text-xs text-muted-foreground">
-          Editing locations requires an <Badge variant="outline" dot tone="admin">admin</Badge> role.
+          Editing locations requires an{" "}
+          <Badge variant="outline" intent="brand" dot>
+            admin
+          </Badge>{" "}
+          role.
         </p>
       ) : null}
 
       <Card>
-        <CardContent className="grid gap-4 p-4 pt-6 md:grid-cols-2 lg:grid-cols-4">
-          <form
-            className="contents"
-            onSubmit={(e) => {
-              e.preventDefault();
-              setPage(1);
-              setSearch(searchDraft);
-            }}
-          >
-            <label className="flex flex-col gap-1 md:col-span-2 lg:col-span-2">
-              <span className="text-xs font-medium text-muted-foreground">Search name / code</span>
-              <div className="flex gap-2">
-                <Input value={searchDraft} onChange={(e) => setSearchDraft(e.target.value)} />
-                <Button type="submit" variant="secondary">
-                  Apply
-                </Button>
-              </div>
-            </label>
-          </form>
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-            Category
-            <select value={category} onChange={(e) => setCategory(e.target.value)} className={fieldClassName()}>
-              <option value="">Any</option>
-              {LOCATION_CATEGORY_VALUES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-            Activity
-            <select
-              value={activeOnly}
-              onChange={(e) => setActiveOnly(e.target.value as typeof activeOnly)}
-              className={fieldClassName()}
+        <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Field label="Search name / code" className="md:col-span-2">
+            <form
+              className="flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                setPage(1);
+                setSearch(searchDraft);
+              }}
             >
-              <option value="true">Active</option>
-              <option value="false">Inactive</option>
-              <option value="">All</option>
-            </select>
-          </label>
+              <Input value={searchDraft} onChange={(e) => setSearchDraft(e.target.value)} />
+              <Button type="submit" variant="secondary">
+                Apply
+              </Button>
+            </form>
+          </Field>
+          <Field label="Category" htmlFor="loc-cat">
+            <Select
+              value={category}
+              onValueChange={(v) => {
+                setPage(1);
+                setCategory(v);
+              }}
+            >
+              <SelectTrigger id="loc-cat">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ANY}>Any category</SelectItem>
+                {LOCATION_CATEGORY_VALUES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    <span className="capitalize">{c.replace(/-/g, " ")}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Activity">
+            <SegmentedControl
+              aria-label="Active filter"
+              value={activeOnly}
+              onChange={(v) => setActiveOnly(v)}
+              options={[
+                { value: "true", label: "Active" },
+                { value: "false", label: "Inactive" },
+                { value: "all", label: "All" },
+              ]}
+            />
+          </Field>
         </CardContent>
       </Card>
 
@@ -151,11 +187,11 @@ export default function LocationsPage() {
               header: "Active",
               cell: (row) =>
                 row.isActive ? (
-                  <Badge variant="secondary" dot tone="success">
+                  <Badge variant="outline" intent="success" dot>
                     Yes
                   </Badge>
                 ) : (
-                  <Badge variant="outline" tone="critical">
+                  <Badge variant="outline" intent="danger">
                     No
                   </Badge>
                 ),
@@ -175,13 +211,9 @@ export default function LocationsPage() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="text-destructive"
+                        className="text-[var(--danger)]"
                         disabled={deactivateState.isLoading}
-                        onClick={async () => {
-                          if (!confirm(`Deactivate ${row.name}?`)) return;
-                          await deactivateLoc(locId(row)).unwrap();
-                          void refetch();
-                        }}
+                        onClick={() => setConfirmDeactivate(row)}
                       >
                         Deactivate
                       </Button>
@@ -211,54 +243,97 @@ export default function LocationsPage() {
         />
       ) : null}
 
-      {createOpen ? (
-        <LocationFormModal
-          title="Add location"
-          submitLabel="Create"
-          loading={createState.isLoading}
-          error={createState.error}
-          initial={null}
-          onClose={() => setCreateOpen(false)}
-          onSubmit={async (body) => {
+      <LocationFormDialog
+        open={createOpen}
+        title="Add location"
+        submitLabel="Create"
+        loading={createState.isLoading}
+        initial={null}
+        onClose={() => setCreateOpen(false)}
+        onSubmit={async (body) => {
+          try {
             await createLoc(body as CreateLocationBody).unwrap();
+            toast.success("Location created");
             setCreateOpen(false);
             void refetch();
-          }}
-        />
-      ) : null}
+          } catch (err) {
+            toast.error(errorMessage(err, "Could not create location"));
+          }
+        }}
+      />
 
-      {editLoc ? (
-        <LocationFormModal
-          title="Edit location"
-          submitLabel="Save"
-          loading={updateState.isLoading}
-          error={updateState.error}
-          initial={editLoc}
-          onClose={() => setEditLoc(null)}
-          onSubmit={async (body) => {
+      <LocationFormDialog
+        open={Boolean(editLoc)}
+        title="Edit location"
+        submitLabel="Save"
+        loading={updateState.isLoading}
+        initial={editLoc}
+        onClose={() => setEditLoc(null)}
+        onSubmit={async (body) => {
+          if (!editLoc) return;
+          try {
             await updateLoc({ id: locId(editLoc), body: body as UpdateLocationBody }).unwrap();
+            toast.success("Location updated");
             setEditLoc(null);
             void refetch();
-          }}
-        />
-      ) : null}
+          } catch (err) {
+            toast.error(errorMessage(err, "Could not save location"));
+          }
+        }}
+      />
+
+      <Dialog open={Boolean(confirmDeactivate)} onOpenChange={(o) => (!o ? setConfirmDeactivate(null) : null)}>
+        {confirmDeactivate ? (
+          <DialogContent size="sm">
+            <DialogHeader>
+              <DialogTitle>Deactivate location?</DialogTitle>
+              <DialogDescription>
+                {confirmDeactivate.name} ({confirmDeactivate.code}) will no longer appear in active pickers. Existing
+                scans remain.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setConfirmDeactivate(null)}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={deactivateState.isLoading}
+                onClick={async () => {
+                  try {
+                    await deactivateLoc(locId(confirmDeactivate)).unwrap();
+                    toast.success("Location deactivated");
+                    setConfirmDeactivate(null);
+                    void refetch();
+                  } catch (err) {
+                    toast.error(errorMessage(err, "Could not deactivate"));
+                  }
+                }}
+              >
+                Deactivate
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        ) : null}
+      </Dialog>
     </div>
   );
 }
 
-function LocationFormModal({
+function LocationFormDialog({
+  open,
   title,
   submitLabel,
   loading,
-  error,
   initial,
   onClose,
   onSubmit,
 }: {
+  open: boolean;
   title: string;
   submitLabel: string;
   loading: boolean;
-  error: unknown;
   initial: LocationRecord | null;
   onClose: () => void;
   onSubmit: (body: CreateLocationBody | UpdateLocationBody) => Promise<void>;
@@ -268,73 +343,83 @@ function LocationFormModal({
   const [category, setCategory] = useState<string>(initial?.category ?? "other");
   const [isActive, setIsActive] = useState(initial?.isActive ?? true);
 
+  useEffect(() => {
+    if (!open) return;
+    setName(initial?.name ?? "");
+    setCode(initial?.code ?? "");
+    setCategory(initial?.category ?? "other");
+    setIsActive(initial?.isActive ?? true);
+  }, [open, initial]);
+
+  const isEdit = Boolean(initial);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog">
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        aria-label="Dismiss"
-        onClick={onClose}
-      />
-      <Card className="relative z-[1] w-full max-w-md shadow-2xl">
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <label className="flex flex-col gap-1 text-xs font-medium">
-            Name
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
-          </label>
-          <label className="flex flex-col gap-1 text-xs font-medium">
-            Code
-            <Input value={code} onChange={(e) => setCode(e.target.value)} disabled={!!initial} />
-          </label>
-          <label className="flex flex-col gap-1 text-xs font-medium">
-            Category
-            <select value={category} onChange={(e) => setCategory(e.target.value)} className={fieldClassName()}>
-              {LOCATION_CATEGORY_VALUES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </label>
-          {initial ? (
+    <Dialog open={open} onOpenChange={(o) => (!o ? onClose() : null)}>
+      <DialogContent size="md">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            {isEdit ? "Update the location metadata." : "Create a property zone (laundry, floor, storage)."}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogBody className="space-y-3">
+          <Field label="Name" required htmlFor="loc-form-name">
+            <Input id="loc-form-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+          </Field>
+          <Field
+            label="Code"
+            required
+            htmlFor="loc-form-code"
+            helper={isEdit ? "Code is immutable after creation." : undefined}
+          >
+            <Input id="loc-form-code" value={code} onChange={(e) => setCode(e.target.value)} disabled={isEdit} />
+          </Field>
+          <Field label="Category" htmlFor="loc-form-cat">
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger id="loc-form-cat">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LOCATION_CATEGORY_VALUES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    <span className="capitalize">{c.replace(/-/g, " ")}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          {isEdit ? (
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
-              <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
+                className="size-4 rounded border-border accent-[var(--brass)]"
+              />
               Active
             </label>
           ) : null}
-          {isFetchBaseQueryError(error) ? <p className="text-sm text-destructive">Request failed.</p> : null}
-        </CardContent>
-        <CardFooter className="justify-end gap-2">
+        </DialogBody>
+        <DialogFooter>
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
           <Button
             type="button"
+            variant="primary"
             disabled={loading || !name.trim() || !code.trim()}
             onClick={async () => {
-              if (initial) {
-                await onSubmit({
-                  name: name.trim(),
-                  code: code.trim(),
-                  category,
-                  isActive,
-                });
+              if (isEdit) {
+                await onSubmit({ name: name.trim(), code: code.trim(), category, isActive });
               } else {
-                await onSubmit({
-                  name: name.trim(),
-                  code: code.trim(),
-                  category,
-                });
+                await onSubmit({ name: name.trim(), code: code.trim(), category });
               }
             }}
           >
             {submitLabel}
           </Button>
-        </CardFooter>
-      </Card>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

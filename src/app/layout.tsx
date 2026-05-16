@@ -1,34 +1,48 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Fraunces, Geist_Mono } from "next/font/google";
+import { Manrope, Cormorant_Garamond, JetBrains_Mono } from "next/font/google";
 import { StoreProvider } from "@/app/providers";
 import "./globals.css";
 
-const dmSans = DM_Sans({
+const manrope = Manrope({
   subsets: ["latin"],
-  variable: "--font-dm-sans",
-  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-manrope",
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
-const fraunces = Fraunces({
+const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
-  variable: "--font-fraunces",
-  axes: ["opsz"],
+  variable: "--font-cormorant",
+  weight: ["400", "500", "600", "700"],
+  display: "optional",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  display: "swap",
 });
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  themeColor: "#F6F1E8",
 };
 
 export const metadata: Metadata = {
-  title: "LineTrack   — Enterprise linen, garment, and uniform tracking",
+  title: "Tantava — Real-time linen, garment, and uniform tracking",
   description:
-    "Washable   tags, fixed portals, handheld scanners, and a real-time dashboard for hotels, hospitals, commercial laundries, and textile rental operators.",
+    "Tantava is the operations platform for premium hospitality textiles. Washable RFID tags, fixed portals, handheld scanners, and a real-time dashboard for hotels, hospitals, commercial laundries, and uniform rental operators.",
+  applicationName: "Tantava",
+  authors: [{ name: "Tantava" }],
+  keywords: [
+    "linen tracking",
+    "RFID linen",
+    "hospitality operations",
+    "uniform rental",
+    "commercial laundry software",
+  ],
 };
 
 export default function RootLayout({
@@ -39,12 +53,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} ${fraunces.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${manrope.variable} ${cormorant.variable} ${jetbrainsMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       {/* suppressHydrationWarning: browser extensions (e.g. Grammarly) inject attributes on <body>. */}
       <body className="flex min-h-full flex-col" suppressHydrationWarning>
-        {/* suppressHydrationWarning: browser extensions (e.g. Grammarly) inject attributes on <body>. */}
+        <a href="#main-content" className="skip-link">
+          Skip to content
+        </a>
         <StoreProvider>{children}</StoreProvider>
       </body>
     </html>

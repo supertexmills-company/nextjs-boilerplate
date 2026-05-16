@@ -6,13 +6,26 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import type { SystemSettings } from "@/entities/settings/types";
 import { useGetSettingsQuery, useUpdateSettingsMutation } from "@/features/settings/api/settingsApi";
 import { PageHeader } from "@/features/dashboard/components/PageHeader";
 import { Skeleton } from "@/features/dashboard/components/Skeleton";
 import { useAppSelector } from "@/store/hooks";
 import { isFetchBaseQueryError } from "@/lib/rtk-errors";
+
+function errorMessage(err: unknown, fallback: string) {
+  if (isFetchBaseQueryError(err)) {
+    if (err.data && typeof err.data === "object" && "message" in err.data) {
+      return String((err.data as { message?: unknown }).message ?? fallback);
+    }
+    return `${fallback} (${String(err.status)})`;
+  }
+  return fallback;
+}
 
 export default function SettingsPage() {
   const role = useAppSelector((s) => s.auth.user?.role);
@@ -45,7 +58,7 @@ export default function SettingsPage() {
             </div>
             <CardDescription>
               Updating settings requires{" "}
-              <Badge variant="outline" dot tone="admin">
+              <Badge variant="outline" intent="brand" dot>
                 admin
               </Badge>{" "}
               access.
@@ -66,7 +79,7 @@ export default function SettingsPage() {
             <Row label="Missing after (hours)" value={settings.missingAfterHours} />
             <Row label="Default low inventory threshold" value={settings.defaultLowInventoryThreshold} />
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Per-type thresholds</p>
+              <p className="kicker">Per-type thresholds</p>
               <pre className="mt-2 overflow-x-auto rounded-md border border-border bg-muted/30 p-3 text-xs font-mono">
                 {JSON.stringify(settings.lowInventoryThresholdByType ?? {}, null, 2)}
               </pre>
@@ -105,7 +118,7 @@ function SettingsAdminForm({ settings, onSaved }: { settings: SystemSettings; on
   );
 
   return (
-    <Card className="border-amber/20">
+    <Card accent>
       <CardHeader>
         <CardTitle className="text-lg">Update settings</CardTitle>
         <CardDescription>PATCH /settings — applies on next scans and housekeeping jobs.</CardDescription>
@@ -126,29 +139,18 @@ function SettingsAdminForm({ settings, onSaved }: { settings: SystemSettings; on
           onChange={setDefaultLowInventoryThreshold}
           min={0}
         />
-        <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-          Low inventory thresholds by type (JSON object)
-          <textarea
-            className="min-h-[7rem] w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs"
+        <Field label="Per-type thresholds" htmlFor="threshold-json" helper="JSON object">
+          <Textarea
+            id="threshold-json"
+            className="min-h-[7rem] font-mono text-xs"
             value={thresholdMapJson}
             onChange={(e) => setThresholdMapJson(e.target.value)}
           />
-        </label>
-
-        {updateState.error !== undefined && isFetchBaseQueryError(updateState.error) ? (
-          <p className="text-sm text-destructive">
-            {(updateState.error.data &&
-            typeof updateState.error.data === "object" &&
-            "message" in updateState.error.data &&
-            typeof (updateState.error.data as { message?: unknown }).message === "string"
-              ? (updateState.error.data as { message: string }).message
-              : null) ?? "Could not save."}
-          </p>
-        ) : null}
+        </Field>
 
         <Button
           type="button"
-          variant="luxury"
+          variant="primary"
           disabled={updateState.isLoading}
           onClick={async () => {
             let lowInventoryThresholdByType: Record<string, number> = {};
@@ -165,14 +167,19 @@ function SettingsAdminForm({ settings, onSaved }: { settings: SystemSettings; on
             } catch {
               lowInventoryThresholdByType = {};
             }
-            await updateSettings({
-              maxWashCycles,
-              replaceSoonThresholdPercent,
-              missingAfterHours,
-              defaultLowInventoryThreshold,
-              lowInventoryThresholdByType,
-            }).unwrap();
-            onSaved();
+            try {
+              await updateSettings({
+                maxWashCycles,
+                replaceSoonThresholdPercent,
+                missingAfterHours,
+                defaultLowInventoryThreshold,
+                lowInventoryThresholdByType,
+              }).unwrap();
+              toast.success("Settings saved");
+              onSaved();
+            } catch (err) {
+              toast.error(errorMessage(err, "Could not save settings"));
+            }
           }}
         >
           Save changes
@@ -204,16 +211,17 @@ function NumberField({
   min?: number;
   max?: number;
 }) {
+  const id = `nf-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
   return (
-    <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-      {label}
+    <Field label={label} htmlFor={id}>
       <Input
+        id={id}
         type="number"
         min={min}
         max={max}
         value={Number.isFinite(value) ? value : ""}
         onChange={(e) => onChange(Number(e.target.value))}
       />
-    </label>
+    </Field>
   );
 }

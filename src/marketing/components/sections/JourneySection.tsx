@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { ArrowRight } from "lucide-react";
 
 interface Milestone {
   phase: string;
@@ -11,45 +12,32 @@ interface Milestone {
 
 const milestones: Milestone[] = [
   {
-    phase: "Source",
-    label: "Tag the item",
+    phase: "Step 1",
+    label: "Items are digitally registered",
     description:
-      "Encode sheets, towels, gowns, uniforms, and rental garments with durable washable  . Assign SKU, customer, and site in the dashboard.",
+      "Linen, uniforms, and textile assets are added to a central system with standardized information across operations.",
+    badge: "Unified records",
   },
   {
-    phase: "Collection",
-    label: "Scan at pickup",
+    phase: "Step 2",
+    label: "Movement is captured across departments",
     description:
-      "Handhelds or choke-point portals register soiled loads by cart, chute, or floor — no line-by-line manual keys.",
-    badge: "Chute / cart read",
+      "As items move through housekeeping, laundry, storage, and distribution, activity is tracked automatically.",
+    badge: "Automatic tracking",
   },
   {
-    phase: "Processing",
-    label: "Track wash & sort",
+    phase: "Step 3",
+    label: "Usage and lifecycle are monitored in real time",
     description:
-      "Tunnel washers, dryers, and sort conveyors capture reads so you reconcile weight, piece count, and customer splits with evidence.",
-    badge: "Plant visibility",
+      "Leaders gain clear visibility into inventory health, usage behavior, and operational trends throughout each cycle.",
+    badge: "Live visibility",
   },
   {
-    phase: "Fulfillment",
-    label: "Storage & dispatch",
+    phase: "Step 4",
+    label: "Alerts surface missing and abnormal patterns",
     description:
-      "Clean-stock cages, rail storage, and outbound docks confirm what left, for which route or property, before the truck rolls.",
-    badge: "Dispatch proof",
-  },
-  {
-    phase: "Operations",
-    label: "Dashboard & alerts",
-    description:
-      "Par levels, shrink hotspots, wash cycles, and SLA breaches surface in one view for procurement, laundry, and housekeeping leadership.",
-    badge: "Live KPIs",
-  },
-  {
-    phase: "Enterprise",
-    label: "Multi-site roll-up",
-    description:
-      "Roll up portfolios — flags, hospitals, plants, and 3PL partners — with consistent item master data and role-based access.",
-    badge: "Portfolio view",
+      "Proactive notifications help teams act early on unusual movement, missing items, and potential cost leakage.",
+    badge: "Early intervention",
   },
 ];
 
@@ -66,98 +54,71 @@ export default function JourneySection() {
           }
         });
       },
-      { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
+      { threshold: 0.15, rootMargin: "0px 0px -40px 0px" },
     );
 
     itemRefs.current.forEach((el) => {
       if (el) observer.observe(el);
     });
-
     if (lineRef.current) observer.observe(lineRef.current);
 
     return () => observer.disconnect();
   }, []);
 
   return (
-    <section id="journey" className="overflow-hidden bg-navy px-6 py-32">
-      <div className="mx-auto max-w-4xl">
+    <section id="journey" className="section-dark relative overflow-hidden bg-[var(--surface-2)] px-6 py-28 md:py-32">
+
+      <div className="relative z-[1] mx-auto max-w-4xl">
         <div
           ref={(el) => {
             itemRefs.current[0] = el;
           }}
-          className="timeline-item mb-20"
+          className="timeline-item mb-16 md:mb-20"
         >
-          <p className="mb-4 text-[11px] font-semibold tracking-widest2 text-amber uppercase">
-            How it works
-          </p>
-          <h2 className="font-display text-[clamp(2.2rem,4.5vw,3.8rem)] font-light leading-[1.08] text-altimeter italic">
-            Tag once.
-            <br />
-            <span className="font-semibold not-italic text-amber">
-              Track everywhere it moves.
-            </span>
+          <p className="kicker mb-3">How it works</p>
+          <h2 className="font-display text-[clamp(2.2rem,4.5vw,3.6rem)] font-medium leading-[1.02] tracking-[var(--tracking-display)] text-[var(--text)]">
+            A simple flow for smarter hotel operations.
           </h2>
-          <p className="mt-5 max-w-xl text-lg font-light leading-relaxed text-haze/60">
-            A practical textile lifecycle — from first encode through multi-site
-            reporting — without ripping out your existing laundry equipment.
+          <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-[var(--text-soft)]">
+            The platform turns fragmented operational activity into one clear decision layer your teams can use every
+            day.
           </p>
         </div>
 
         <div className="relative">
-          <div className="absolute top-0 bottom-0 left-[22px] w-px bg-haze/10">
-            <div
-              ref={lineRef}
-              className="timeline-line-fill w-full bg-amber"
-            />
+          <div className="absolute bottom-0 left-[22px] top-0 w-px bg-border">
+            <div ref={lineRef} className="timeline-line-fill w-full bg-[var(--accent)]" />
           </div>
 
           <div className="flex flex-col gap-0">
-            {milestones.map((milestone, index) => (
+            {milestones.map((m, index) => (
               <div
-                key={milestone.label}
+                key={m.label}
                 ref={(el) => {
                   itemRefs.current[index + 1] = el;
                 }}
                 className="timeline-item relative flex gap-8 pb-12"
-                style={{ transitionDelay: `${index * 0.12}s` }}
+                style={{ transitionDelay: `${index * 110}ms` }}
               >
                 <div className="flex w-11 shrink-0 justify-center">
-                  <div
-                    className={`z-10 flex h-[45px] w-[45px] shrink-0 items-center justify-center rounded-full border-2 transition-all duration-500 ${
-                      index === 0
-                        ? "border-amber bg-amber"
-                        : "border-haze/20 bg-navy group-hover:border-amber"
-                    }`}
-                  >
-                    <span
-                      className={`font-display text-[10px] font-bold ${
-                        index === 0 ? "text-navy-deep" : "text-amber"
-                      }`}
-                    >
-                      {index === 0 ? "✦" : index}
-                    </span>
+                  <div className="z-10 flex size-[44px] shrink-0 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--accent)_40%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,var(--surface))]">
+                    <span className="size-2 rounded-full bg-[var(--accent)]" aria-hidden />
                   </div>
                 </div>
 
                 <div className="flex-1 pt-2 pb-2">
                   <div className="mb-1 flex flex-wrap items-center gap-3">
-                    <span className="font-display text-[1.35rem] font-semibold text-altimeter">
-                      {milestone.label}
-                    </span>
-                    {milestone.badge && (
-                      <span className="rounded-full border border-amber/20 bg-amber/10 px-3 py-1 text-[11px] font-semibold tracking-wide text-amber">
-                        {milestone.badge}
+                    <span className="font-display text-[1.3rem] font-medium text-[var(--text)]">{m.label}</span>
+                    {m.badge ? (
+                      <span className="rounded-full border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-2.5 py-0.5 text-[10.5px] font-semibold tracking-wide text-[var(--accent)]">
+                        {m.badge}
                       </span>
-                    )}
+                    ) : null}
                   </div>
-                  <div className="mb-3 flex items-center gap-2">
-                    <span className="font-display text-sm font-semibold text-amber">
-                      {milestone.phase}
-                    </span>
-                  </div>
-                  <p className="max-w-md text-[0.95rem] font-light leading-relaxed text-haze/60">
-                    {milestone.description}
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-[var(--tracking-widest2)] text-[var(--accent)]">
+                    {m.phase}
                   </p>
+                  <p className="max-w-md text-[15px] leading-relaxed text-[var(--text-soft)]">{m.description}</p>
                 </div>
               </div>
             ))}
@@ -168,31 +129,18 @@ export default function JourneySection() {
           ref={(el) => {
             itemRefs.current[milestones.length + 1] = el;
           }}
-          className="timeline-item mt-8 border-t border-haze/10 pt-10"
-          style={{ transitionDelay: `${milestones.length * 0.12}s` }}
+          className="timeline-item mt-8 border-t border-border pt-10"
+          style={{ transitionDelay: `${milestones.length * 110}ms` }}
         >
-          <p className="mb-6 max-w-md text-sm font-light text-haze/50">
-            Request the deployment overview — hardware footprint, integration
-            options, and a sample rollout timeline for your portfolio.
+          <p className="mb-6 max-w-md text-sm leading-relaxed text-[var(--text-soft)]">
+            See how this model fits your operating footprint and where the fastest ROI opportunities exist.
           </p>
           <a
-            href="#email-capture"
-            className="group inline-flex items-center gap-2 text-sm font-semibold text-amber transition-colors hover:text-amber-light"
+            href="#booking"
+            className="group inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent)] transition-colors hover:text-[var(--accent-soft)]"
           >
-            <span>Email me the overview</span>
-            <svg
-              className="h-4 w-4 transition-transform group-hover:translate-x-1"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M5 12h14m-7-7 7 7-7 7"
-              />
-            </svg>
+            Talk to sales
+            <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
           </a>
         </div>
       </div>

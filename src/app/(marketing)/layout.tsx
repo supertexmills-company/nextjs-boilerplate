@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
 /**
- * Route group `(marketing)` — URL stays `/`; isolates public marketing shell from future app routes.
- * Visual shell (background, grain) lives here so `page` stays a thin composition root.
+ * `(marketing)` route group — URL stays at `/`. Hosts the public Tantava marketing shell.
+ * Background is the porcelain neutral so sections (which provide their own bg) can layer over it.
  */
 export default function MarketingLayout({
   children,
@@ -10,8 +10,7 @@ export default function MarketingLayout({
   children: ReactNode;
 }>) {
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-altimeter font-sans text-navy">
-      <div className="grain" aria-hidden />
+    <div className="relative min-h-screen overflow-x-hidden bg-[var(--porcelain)] font-sans text-foreground">
       {children}
     </div>
   );
